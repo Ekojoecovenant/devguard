@@ -1,9 +1,9 @@
 {
-  "name": "stacksafe",
+  "name": "precheck",
   "version": "0.1.0",
   "description": "A fast .env scanner for Node.js projects",
   "bin": {
-    "stacksafe": "cli.js"
+    "precheck": "cli.js"
   },
   "files": [
     "cli.js",
