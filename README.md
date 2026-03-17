@@ -21,19 +21,11 @@ Built with Rust. Fast by default.
 
 ## 🚀 Installation
 
-> Coming soon via npm:
-
 ```bash
 npx devguard
 ```
 
-For now, clone and build locally:
-
-```bash
-git clone https://github.com/ekojoecovenant/devguard.git
-cd devguard
-cargo build --release
-```
+That's it. No installation needed.
 
 ---
 
@@ -42,7 +34,11 @@ cargo build --release
 Place a `.env` file in your project root, then run:
 
 ```bash
-cargo run
+# Scan default .env
+npx devguard check
+ 
+# Scan a custom path
+npx devguard check --path ./apps/backend/.env
 ```
 
 ### Example `.env`
@@ -95,13 +91,25 @@ No config needed. Just run it.
 - [x] `.env` parser
 - [x] Pattern-based validation engine
 - [x] CLI output with colors
-- [ ] `npx devguard` via npm
+- [x] `npx devguard` via npm
+- [x] `--path` option for custom `.env` paths
 - [ ] Custom rules via `devguard.config.toml`
 - [ ] CI/CD integration
 - [ ] GitHub Action
 - [ ] VSCode extension
 - [ ] Docker config validation
 - [ ] Secret leak detection in source files
+
+---
+
+## 🔧 Local Development
+
+```bash
+git clone https://github.com/ekojoecovenant/devguard.git
+cd devguard
+cargo build --release
+node cli.js check
+```
 
 ---
 
@@ -120,7 +128,8 @@ Contributions are welcome! Here's how to get started:
 4. Run the project locally to test
 
     ```bash
-    cargo run
+    cargo build --release
+    node cli.js check
     ```
 
 5. Open a Pull Request with a clear description of what you changed and why
