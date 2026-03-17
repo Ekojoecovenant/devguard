@@ -37,7 +37,7 @@ fn main() {
 }
 
 fn execute(path: String) {
-    println!("\n🔍 DevGuard - scanning .env...\n");
+    println!("\n🔍 StackSafe - scanning .env...\n");
     let lines_map = parser::parser_env(&path);
     let valid = validator::validate_env(lines_map);
 

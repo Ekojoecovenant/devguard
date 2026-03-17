@@ -1,8 +1,8 @@
-# 🛡️ DevGuard
+# 🛡️ StackSafe
 
 > Catch broken configs before they break your app.
 
-DevGuard is a fast, zero-config `.env` scanner for Node.js projects. It validates your environment variables and warns you about weak secrets, invalid ports, malformed URLs, and empty values — before you ship.
+StackSafe is a fast, zero-config `.env` scanner for Node.js projects. It validates your environment variables and warns you about weak secrets, invalid ports, malformed URLs, and empty values — before you ship.
 
 Built with Rust. Fast by default.
 
@@ -22,7 +22,7 @@ Built with Rust. Fast by default.
 ## 🚀 Installation
 
 ```bash
-npx devguard
+npx stacksafe
 ```
 
 That's it. No installation needed.
@@ -35,10 +35,10 @@ Place a `.env` file in your project root, then run:
 
 ```bash
 # Scan default .env
-npx devguard check
+npx stacksafe check
  
 # Scan a custom path
-npx devguard check --path ./apps/backend/.env
+npx stacksafe check --path ./apps/backend/.env
 ```
 
 ### Example `.env`
@@ -53,7 +53,7 @@ NODE_ENV=development
 ### Example output
 
 ```bash
-🔍 DevGuard - scanning .env...
+🔍 StackSafe - scanning .env...
 
 ❌ PORT -> must be a number
 ❌ JWT_SECRET -> must be greater than or equal to 32 characters
@@ -65,7 +65,7 @@ NODE_ENV=development
 When everything looks good:
 
 ```bash
-🔍 DevGuard - scanning .env...
+🔍 StackSafe - scanning .env...
 
 ✅ All checks passed! Your .env looks good!
 ```
@@ -74,7 +74,7 @@ When everything looks good:
 
 ## 🧠 How It Works
 
-DevGuard scans your `.env` file line by line and runs pattern-based validation rules:
+StackSafe scans your `.env` file line by line and runs pattern-based validation rules:
 
 | Pattern | Rule |
 | ------- | ---- |
@@ -91,9 +91,9 @@ No config needed. Just run it.
 - [x] `.env` parser
 - [x] Pattern-based validation engine
 - [x] CLI output with colors
-- [x] `npx devguard` via npm
+- [x] `npx stacksafe` via npm
 - [x] `--path` option for custom `.env` paths
-- [ ] Custom rules via `devguard.config.toml`
+- [ ] Custom rules via `stacksafe.config.toml`
 - [ ] CI/CD integration
 - [ ] GitHub Action
 - [ ] VSCode extension
@@ -105,8 +105,8 @@ No config needed. Just run it.
 ## 🔧 Local Development
 
 ```bash
-git clone https://github.com/ekojoecovenant/devguard.git
-cd devguard
+git clone https://github.com/ekojoecovenant/stacksafe.git
+cd stacksafe
 cargo build --release
 node cli.js check
 ```
