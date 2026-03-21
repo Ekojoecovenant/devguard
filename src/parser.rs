@@ -5,7 +5,7 @@ use std::{
 };
 
 pub fn parser_env(path: &str) -> Result<HashMap<String, Option<String>>, String> {
-    let file = File::open(path).map_err(|_| format!("Could not find ..env file at '{}'", path))?;
+    let file = File::open(path).map_err(|_| format!("Could not find .env file at '{}'", path))?;
     let reader = BufReader::new(file);
 
     let mut lines_map: HashMap<String, Option<String>> = HashMap::new();

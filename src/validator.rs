@@ -12,6 +12,22 @@ impl ValidationError {
     }
 }
 
+// outside the loop - created once!!
+const VALID_URL_PREFIXES: &[&str] = &[
+    "http://",
+    "https://",
+    "postgres://",
+    "postgresql://",
+    "mysql://",
+    "redis://",
+    "rediss://",
+    "mongodb://",
+    "mongodb+srv://",
+    "amqp://",
+    "amqps://",
+    "sqlite://",
+];
+
 pub fn validate_env(map: HashMap<String, Option<String>>) -> Vec<ValidationError> {
     let mut vec_errors: Vec<ValidationError> = Vec::new();
 
@@ -66,10 +82,9 @@ pub fn validate_env(map: HashMap<String, Option<String>>) -> Vec<ValidationError
                     ));
                 }
                 Some(val) => {
-                    let is_valid = val.starts_with("http://")
-                        || val.starts_with("https://")
-                        || val.starts_with("postgres://")
-                        || val.starts_with("mysql://");
+                    let is_valid = VALID_URL_PREFIXES
+                        .iter()
+                        .any(|prefix| val.starts_with(prefix));
                     if !is_valid {
                         vec_errors.push(ValidationError::new(
                             key,
