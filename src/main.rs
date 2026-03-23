@@ -39,7 +39,10 @@ fn main() {
 fn execute(path: String) {
     println!("\n🔍 DevGuard - scanning .env...\n");
     match parser::parser_env(&path) {
-        Ok(lines_map) => {
+        Ok((lines_map, warnings)) => {
+            for warning in warnings {
+                println!("{}", warning);
+            }
             let valid = validator::validate_env(lines_map);
 
             for valid_error in &valid {
