@@ -1,7 +1,9 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 
+mod error;
 mod init;
+mod missing;
 mod parser;
 mod validator;
 
@@ -40,30 +42,51 @@ fn main() {
 }
 
 fn execute(path: String) {
-    println!("\n🔍 DevGuard - scanning .env...\n");
+    println!("\n🔍 DevGuard - scanning .env...");
     match parser::parser_env(&path) {
         Ok((lines_map, warnings)) => {
-            for warning in &warnings {
-                println!("{}", warning.yellow());
+            // Warnings Section
+            if !warnings.is_empty() {
+                println!("{}", "\n=== Warning(s) ===".yellow().bold());
+                for warning in &warnings {
+                    println!("{}", warning.yellow());
+                }
             }
-            let valid = validator::validate_env(lines_map);
 
-            for valid_error in &valid {
-                println!("❌ {} -> {}", valid_error.key.red(), valid_error.message)
+            // Validation Errors Section
+            let valid = validator::validate_env(&lines_map);
+            if !valid.is_empty() {
+                println!("{}", "\n=== Error(s) ===".red().bold());
+                for valid_error in &valid {
+                    println!("❌ {} -> {}", valid_error.key.red(), valid_error.message)
+                }
             }
-            if valid.is_empty() && warnings.len() == 0 {
+
+            // Missing Keys
+            let missing = missing::check_missing_keys(&lines_map, ".env.example");
+            if !missing.is_empty() {
+                println!("{}", "\n=== Missing(s) ===".red().bold());
+                for error in &missing {
+                    println!("❌ {} -> {}", error.key.red(), error.message);
+                }
+            }
+
+            // Summary
+            if valid.is_empty() && warnings.is_empty() && missing.is_empty() {
                 println!("✅ All checks passed! Your .env looks good!");
             } else {
-                if !valid.is_empty() && !warnings.is_empty() {
+                let total_errors = valid.len() + missing.len();
+                let total_warnings = warnings.len();
+
+                if total_errors > 0 && total_warnings > 0 {
                     println!(
                         "\n⚠️  {} error(s) and {} warning(s) found",
-                        valid.len(),
-                        warnings.len()
+                        total_errors, total_warnings
                     );
-                } else if !valid.is_empty() {
-                    println!("\n⚠️  {} error(s) found", valid.len());
+                } else if total_errors > 0 {
+                    println!("\n⚠️  {} error(s) found", total_errors);
                 } else {
-                    println!("\n⚠️  {} warning(s) found", warnings.len());
+                    println!("\n⚠️  {} warning(s) found", total_warnings);
                 }
             }
         }

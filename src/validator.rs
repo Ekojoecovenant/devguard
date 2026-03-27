@@ -1,20 +1,10 @@
 use std::collections::HashMap;
 
-pub struct ValidationError {
-    pub key: String,
-    pub rule: String,
-    pub message: String,
-}
-
-impl ValidationError {
-    fn new(key: String, rule: String, message: String) -> Self {
-        ValidationError { key, rule, message }
-    }
-}
+use crate::error::DevGuardError;
 
 // RULE TRAIT
 pub trait Rule {
-    fn check(&self, key: &str, value: &str) -> Option<ValidationError>;
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError>;
 }
 
 pub struct SecretRule;
@@ -26,13 +16,13 @@ pub struct NodeRule;
 
 // Impl
 impl Rule for SecretRule {
-    fn check(&self, key: &str, value: &str) -> Option<ValidationError> {
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("SECRET") && !key.contains("KEY") && !key.contains("API") {
             return None;
         }
 
         if value.is_empty() {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "empty".to_string(),
                 "must not be empty".to_string(),
@@ -40,7 +30,7 @@ impl Rule for SecretRule {
         }
 
         if value.chars().count() < 32 {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "min_length".to_string(),
                 "must be greater than or equal to 32".to_string(),
@@ -52,19 +42,19 @@ impl Rule for SecretRule {
 }
 
 impl Rule for PortRule {
-    fn check(&self, key: &str, value: &str) -> Option<ValidationError> {
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("PORT") {
             return None;
         }
         if value.is_empty() {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "empty".to_string(),
                 "must not be empty".to_string(),
             ));
         }
         if !value.parse::<u16>().is_ok() {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "format".to_string(),
                 "must be a number".to_string(),
@@ -76,12 +66,12 @@ impl Rule for PortRule {
 }
 
 impl Rule for UrlRule {
-    fn check(&self, key: &str, value: &str) -> Option<ValidationError> {
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("URL") {
             return None;
         }
         if value.is_empty() {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "empty".to_string(),
                 "must not be empty".to_string(),
@@ -91,7 +81,7 @@ impl Rule for UrlRule {
             .iter()
             .any(|prefix| value.starts_with(prefix))
         {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "format".to_string(),
                 String::from(
@@ -105,12 +95,12 @@ impl Rule for UrlRule {
 }
 
 impl Rule for IdRule {
-    fn check(&self, key: &str, value: &str) -> Option<ValidationError> {
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("ID") {
             return None;
         }
         if value.is_empty() {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "empty".to_string(),
                 "must not be empty".to_string(),
@@ -122,12 +112,12 @@ impl Rule for IdRule {
 }
 
 impl Rule for HostRule {
-    fn check(&self, key: &str, value: &str) -> Option<ValidationError> {
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("HOST") {
             return None;
         }
         if value.is_empty() {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "empty".to_string(),
                 "must not be empty".to_string(),
@@ -139,12 +129,12 @@ impl Rule for HostRule {
 }
 
 impl Rule for NodeRule {
-    fn check(&self, key: &str, value: &str) -> Option<ValidationError> {
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if key != "NODE_ENV" {
             return None;
         }
         if value.is_empty() {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "empty".to_string(),
                 "must not be empty".to_string(),
@@ -152,7 +142,7 @@ impl Rule for NodeRule {
         }
 
         if value != "development" && value != "production" && value != "test" {
-            return Some(ValidationError::new(
+            return Some(DevGuardError::new(
                 key.to_string(),
                 "format".to_string(),
                 "must be \"development\" or \"production\" or \"test\"".to_string(),
@@ -179,7 +169,7 @@ const VALID_URL_PREFIXES: &[&str] = &[
     "sqlite://",
 ];
 
-pub fn validate_env(map: HashMap<String, Option<String>>) -> Vec<ValidationError> {
+pub fn validate_env(map: &HashMap<String, Option<String>>) -> Vec<DevGuardError> {
     let rules: Vec<Box<dyn Rule>> = vec![
         Box::new(NodeRule),
         Box::new(SecretRule),
@@ -189,9 +179,9 @@ pub fn validate_env(map: HashMap<String, Option<String>>) -> Vec<ValidationError
         Box::new(IdRule),
     ];
 
-    let mut vec_errors: Vec<ValidationError> = Vec::new();
+    let mut vec_errors: Vec<DevGuardError> = Vec::new();
 
-    for (key, value) in &map {
+    for (key, value) in map {
         let val_str = match value {
             None => "",
             Some(v) => v.as_str(),
