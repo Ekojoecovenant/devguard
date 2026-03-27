@@ -11,10 +11,12 @@ Built with Rust. Fast by default.
 ## ✨ Features
 
 - 🔍 Scans your `.env` file instantly
-- ❌ Detects weak secrets (e.g. `JWT_SECRET` too short)
+- ❌ Detects weak secrets (`SECRET`, `KEY`, `API` too short)
 - ❌ Catches invalid port values (e.g. `PORT=abc`)
 - ❌ Flags malformed URLs (e.g. `DATABASE_URL=localhost`)
-- ⚠️ Warns about empty or malformed variables
+- ❌ Validates `NODE_ENV` values
+- ⚠️ Warns about empty, malformed, or missing variables
+- ✅ Priority-based rule engine
 - ✅ Clean, readable CLI output
 
 ---
@@ -48,7 +50,13 @@ TEST2
 PORT=abc
 JWT_SECRET=123
 DATABASE_URL=localhost
-NODE_ENV=development
+NODE_ENV=staging
+API_KEY=
+STRIPE_SECRET_KEY=shortkey
+HOST=
+CLIENT_ID=
+
+PORT_HOST_KEY=g
 ```
 
 ### Example output
@@ -57,11 +65,17 @@ NODE_ENV=development
 🔍 DevGuard - scanning .env...
 
 ⚠️ 'TEST2' is malformed - missing '='
-❌ PORT -> must be a number
-❌ JWT_SECRET -> must be greater than or equal to 32 characters
+❌ HOST -> must not be empty
+❌ PORT_HOST_KEY -> must be greater than or equal to 32
+❌ NODE_ENV -> must be "development" or "production" or "test"
+❌ API_KEY -> must not be empty
 ❌ DATABASE_URL -> must start with http://, https://, postgres://, postgresql://, mysql://, redis://, rediss://, mongodb://, mongodb+srv://, amqp://, amqps://, sqlite://
+❌ JWT_SECRET -> must be greater than or equal to 32
+❌ CLIENT_ID -> must not be empty
+❌ STRIPE_SECRET_KEY -> must be greater than or equal to 32
+❌ PORT -> must be a number
 
-⚠️  3 errors(s) and 1 warning(s) found
+⚠️  9 error(s) and 1 warning(s) found
 ```
 
 When everything looks good:
@@ -76,14 +90,18 @@ When everything looks good:
 
 ## 🧠 How It Works
 
-DevGuard scans your `.env` file line by line and runs pattern-based validation rules:
+DevGuard scans your `.env` file line by line and runs pattern-based validation rules with priority ordering:
 
 | Pattern | Rule |
 | ------- | ---- |
-| Key contains `SECRET` | Value must be ≥ 32 characters |
-| Key contains `PORT` | Value must be a valid number |
-| Key contains `URL` | Value must start with a valid protocol |
+| Key is `NODE_ENV` | Must be `development`, `production`, or `test` |
+| Key contains `SECRET` or `KEY` or `API` | Value must be ≥ 32 characters |
+| Key contains `URL` | Must start with a valid protocol (http, postgres, redis, etc.) |
+| Key contains `PORT` | Must be a valid number (0-65535) |
+| Key contains `HOST` | Must not be empty |
+| Key contains `ID` | Must not be empty |
 
+Rules are checked in priority order — first match wins.
 No config needed. Just run it.
 
 ---
@@ -97,6 +115,8 @@ No config needed. Just run it.
 - [x] `--path` option for custom `.env` paths
 - [x] Malformed line detection
 - [x] Improved error summary
+- [x] New validation rules
+- [x] Priority system
 - [ ] Custom rules via `devguard.config.toml`
 - [ ] CI/CD integration
 - [ ] GitHub Action
