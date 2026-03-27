@@ -1,6 +1,6 @@
 {
   "name": "@deveko/devguard",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "A fast .env scanner for Node.js projects",
   "bin": {
     "devguard": "cli.js"
