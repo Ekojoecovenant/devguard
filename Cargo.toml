@@ -1,8 +1,10 @@
 [package]
 name = "devguard"
-version = "0.1.8"
+version = "0.1.10"
 edition = "2024"
 
 [dependencies]
 colored = "2"
 clap = { version = "4", features = ["derive"] }
+toml = "1.1.0"
+serde = { version = "1.0.228", features = ["derive"] }

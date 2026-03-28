@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use colored::Colorize;
 
+mod config;
 mod error;
 mod init;
 mod missing;
@@ -23,6 +24,8 @@ enum Commands {
     Check {
         #[arg(long, help = "Path to .env file")]
         path: Option<String>,
+        #[arg(long, help = "Path to config file")]
+        config: Option<String>,
     },
     Init,
 }
@@ -32,17 +35,22 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Check { path } => {
+        Commands::Check { path, config } => {
             let path = path.unwrap_or(".env".to_string());
+            let config = config.unwrap_or("devguard.config.toml".to_string());
 
-            execute(path);
+            execute(path, config);
         }
         Commands::Init => init::init_env(),
     }
 }
 
-fn execute(path: String) {
+fn execute(path: String, config_path: String) {
     println!("\n🔍 DevGuard - scanning .env...");
+
+    // load config
+    let config = config::load_config((&config_path));
+
     match parser::parser_env(&path) {
         Ok((lines_map, warnings)) => {
             // Warnings Section
@@ -54,7 +62,7 @@ fn execute(path: String) {
             }
 
             // Validation Errors Section
-            let valid = validator::validate_env(&lines_map);
+            let valid = validator::validate_env(&lines_map, &config);
             if !valid.is_empty() {
                 println!("{}", "\n=== Error(s) ===".red().bold());
                 for valid_error in &valid {

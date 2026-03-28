@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
-use crate::error::DevGuardError;
+use crate::{config::DevGuardConfig, error::DevGuardError};
 
 // RULE TRAIT
 pub trait Rule {
+    fn pattern(&self) -> &str;
     fn check(&self, key: &str, value: &str) -> Option<DevGuardError>;
 }
 
@@ -13,9 +14,19 @@ pub struct UrlRule;
 pub struct IdRule;
 pub struct HostRule;
 pub struct NodeRule;
+pub struct DynamicRule {
+    pub pattern: String,
+    pub rule_type: String,
+    pub value: String,
+    pub message: String,
+}
 
 // Impl
 impl Rule for SecretRule {
+    fn pattern(&self) -> &str {
+        "SECRET"
+    }
+
     fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("SECRET") && !key.contains("KEY") && !key.contains("API") {
             return None;
@@ -42,6 +53,10 @@ impl Rule for SecretRule {
 }
 
 impl Rule for PortRule {
+    fn pattern(&self) -> &str {
+        "PORT"
+    }
+
     fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("PORT") {
             return None;
@@ -66,6 +81,10 @@ impl Rule for PortRule {
 }
 
 impl Rule for UrlRule {
+    fn pattern(&self) -> &str {
+        "URL"
+    }
+
     fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("URL") {
             return None;
@@ -95,6 +114,10 @@ impl Rule for UrlRule {
 }
 
 impl Rule for IdRule {
+    fn pattern(&self) -> &str {
+        "ID"
+    }
+
     fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("ID") {
             return None;
@@ -112,6 +135,10 @@ impl Rule for IdRule {
 }
 
 impl Rule for HostRule {
+    fn pattern(&self) -> &str {
+        "HOST"
+    }
+
     fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if !key.contains("HOST") {
             return None;
@@ -129,6 +156,10 @@ impl Rule for HostRule {
 }
 
 impl Rule for NodeRule {
+    fn pattern(&self) -> &str {
+        "NODE_ENV"
+    }
+
     fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
         if key != "NODE_ENV" {
             return None;
@@ -153,6 +184,43 @@ impl Rule for NodeRule {
     }
 }
 
+impl Rule for DynamicRule {
+    fn pattern(&self) -> &str {
+        &self.pattern
+    }
+
+    fn check(&self, key: &str, value: &str) -> Option<DevGuardError> {
+        if !key.contains(&self.pattern) {
+            return None;
+        }
+
+        match self.rule_type.as_str() {
+            "min_length" => {
+                let min: usize = self.value.parse().unwrap_or(32);
+                if value.len() < min {
+                    return Some(DevGuardError::new(
+                        key.to_string(),
+                        "min_length".to_string(),
+                        self.message.clone(),
+                    ));
+                }
+            }
+            "one_of" => {
+                let options: Vec<&str> = self.value.split(",").collect();
+                if !options.contains(&value) {
+                    return Some(DevGuardError::new(
+                        key.to_string(),
+                        "one_of".to_string(),
+                        self.message.clone(),
+                    ));
+                }
+            }
+            _ => {}
+        }
+        None
+    }
+}
+
 // outside the loop - created once!!
 const VALID_URL_PREFIXES: &[&str] = &[
     "http://",
@@ -169,8 +237,11 @@ const VALID_URL_PREFIXES: &[&str] = &[
     "sqlite://",
 ];
 
-pub fn validate_env(map: &HashMap<String, Option<String>>) -> Vec<DevGuardError> {
-    let rules: Vec<Box<dyn Rule>> = vec![
+pub fn validate_env(
+    map: &HashMap<String, Option<String>>,
+    config: &Option<DevGuardConfig>,
+) -> Vec<DevGuardError> {
+    let mut rules: Vec<Box<dyn Rule>> = vec![
         Box::new(NodeRule),
         Box::new(SecretRule),
         Box::new(UrlRule),
@@ -178,6 +249,27 @@ pub fn validate_env(map: &HashMap<String, Option<String>>) -> Vec<DevGuardError>
         Box::new(HostRule),
         Box::new(IdRule),
     ];
+
+    // merge custom rules from config
+    if let Some(cfg) = config {
+        if let Some(custom_rules) = &cfg.rules {
+            for custom in custom_rules {
+                let exists = rules.iter().any(|r| r.pattern() == custom.pattern);
+                if exists {
+                    // removing existing rule with same pattern
+                    rules.retain(|r| r.pattern() != custom.pattern);
+                }
+
+                // add custom rule
+                rules.push(Box::new(DynamicRule {
+                    pattern: custom.pattern.clone(),
+                    rule_type: custom.rule.clone(),
+                    value: custom.value.clone(),
+                    message: custom.message.clone(),
+                }));
+            }
+        }
+    }
 
     let mut vec_errors: Vec<DevGuardError> = Vec::new();
 

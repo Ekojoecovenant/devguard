@@ -21,6 +21,8 @@ Built with Rust. Fast by default.
 - ✅ Clean, readable CLI output
 - 🖥️ Cross platform (Windows, Mac, Linux)
 - 🤖 Auto-builds via GitHub Actions
+- ⚙️ Custom rules via `devguard.config.toml`
+- 🔄 Custom rules override built-in rules
 
 ---
 
@@ -47,6 +49,25 @@ npx @deveko/devguard check --path ./apps/backend/.env
 
 # Generate .env.example from .env
 npx @deveko/devguard init
+
+# Use custom config path
+npx @deveko/devguard check --config ./custom/devguard.config.toml
+```
+
+### Example `devguard.config.toml`
+
+```toml
+[[rules]]
+pattern = "TOKEN"
+rule = "min_length"
+value = "64"
+message = "must be at least 64 characters"
+
+[[rules]]
+pattern = "NODE_ENV"
+rule = "one_of"
+value = "staging,production,development"
+message = "must be staging, production or development"
 ```
 
 ### Example `.env`
@@ -109,7 +130,15 @@ Runs pattern-based rules with priority ordering:
 **3. Missing Keys Check**
 Compares `.env` against `.env.example` - any key in `.env.example` missing from  `.env` is flagged!!
 
-No config needed. Just run it.
+**4. Custom Rules(optional)**
+Create `devguard.config.toml` in your project root:
+
+| Rule type | Description |
+| --------- | ----------- |
+| `min_length` | Value must be at least N characters |
+| `one_of` | Value must be one of the specified options |
+
+Custom rules override built-in rules with matching patterns!!
 
 ---
 
@@ -129,7 +158,7 @@ No config needed. Just run it.
 - [x] Sectioned output (Warnings, Errors, Missing)
 - [x] CI/CD integration via GitHub Action
 - [x] Cross platform binaries (Windows, Mac, Linux)
-- [ ] Custom rules via `devguard.config.toml`
+- [x] Custom rules via `devguard.config.toml`
 - [ ] VSCode extension
 - [ ] Docker config validation
 - [ ] Secret leak detection in source files

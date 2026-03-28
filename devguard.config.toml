@@ -1,0 +1,11 @@
+[[rules]]
+pattern = "TOKEN"
+rule = "min_length"
+value = "64"
+message = "must be at least 64 characters"
+
+[[rules]]
+pattern = "NODE_ENV"
+rule = "one_of"
+value = "staging,production,development"
+message = "must be staging, production or development"
