@@ -54,13 +54,6 @@ TEST2
 PORT=abc
 JWT_SECRET=123
 DATABASE_URL=localhost
-NODE_ENV=staging
-API_KEY=
-STRIPE_SECRET_KEY=shortkey
-HOST=
-CLIENT_ID=
-
-PORT_HOST_KEY=g
 ```
 
 ### Example output
@@ -68,18 +61,18 @@ PORT_HOST_KEY=g
 ```bash
 🔍 DevGuard - scanning .env...
 
-⚠️ 'TEST2' is malformed - missing '='
-❌ HOST -> must not be empty
-❌ PORT_HOST_KEY -> must be greater than or equal to 32
-❌ NODE_ENV -> must be "development" or "production" or "test"
-❌ API_KEY -> must not be empty
-❌ DATABASE_URL -> must start with http://, https://, postgres://, postgresql://, mysql://, redis://, rediss://, mongodb://, mongodb+srv://, amqp://, amqps://, sqlite://
-❌ JWT_SECRET -> must be greater than or equal to 32
-❌ CLIENT_ID -> must not be empty
-❌ STRIPE_SECRET_KEY -> must be greater than or equal to 32
-❌ PORT -> must be a number
+=== Warning(s) ===
+⚠️  'TEST2' is malformed - missing '='
 
-⚠️  9 error(s) and 1 warning(s) found
+=== Error(s) ===
+❌ PORT -> must be a number
+❌ JWT_SECRET -> must be greater than or equal to 32
+❌ DATABASE_URL -> must start with http://, https://, postgres://...
+
+=== Missing(s) ===
+❌ REDIS_URL -> missing required variable
+
+⚠️  4 error(s) and 1 warning(s) found
 ```
 
 When everything looks good:
@@ -94,7 +87,13 @@ When everything looks good:
 
 ## 🧠 How It Works
 
-DevGuard scans your `.env` file line by line and runs pattern-based validation rules with priority ordering:
+DevGuard runs three checks on your project:
+
+**1. Parse Check**
+Scans `.env` line by line for malformed entries
+
+**2. Validation Check**
+Runs pattern-based rules with priority ordering:
 
 | Pattern | Rule |
 | ------- | ---- |
@@ -105,7 +104,9 @@ DevGuard scans your `.env` file line by line and runs pattern-based validation r
 | Key contains `HOST` | Must not be empty |
 | Key contains `ID` | Must not be empty |
 
-Rules are checked in priority order — first match wins.
+**3. Missing Keys Check**
+Compares `.env` against `.env.example` - any key in `.env.example` missing from  `.env` is flagged!!
+
 No config needed. Just run it.
 
 ---
@@ -122,7 +123,8 @@ No config needed. Just run it.
 - [x] New validation rules
 - [x] Priority system
 - [x] `devguard init` -> auto-generate `.env.example`
-- [ ] Missing required keys detection
+- [x] Missing required keys detection
+- [x] Sectioned output (Warnings, Errors, Missing)
 - [ ] Custom rules via `devguard.config.toml`
 - [ ] CI/CD integration
 - [ ] GitHub Action
