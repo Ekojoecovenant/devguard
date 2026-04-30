@@ -237,9 +237,11 @@ impl Rule for InsecureConfigRule {
         }
 
         if (key.contains("DEBUG") || key.contains("LOG_LEVEL")) && (value == "true" || value.to_lowercase() == "debug") {
-            // This is a warning really, but we'll flag it as insecure if it's likely production
-            // We don't know the context here easily without checking NODE_ENV in the same scan
-            // For now let's just flag it.
+            return Some(GuardStackError::new(
+                key.to_string(),
+                "insecure_debug".to_string(),
+                "debug logging enabled - may leak sensitive information".to_string(),
+            ));
         }
 
         None
