@@ -12,9 +12,11 @@ Built with Rust. Fast by default.
 
 - 🔍 Scans your `.env` file instantly
 - ❌ Detects weak secrets (`SECRET`, `KEY`, `API` too short)
+- ❌ Detects common dummy values (e.g., `123456`, `password`)
+- ❌ Flags insecure configurations (e.g., `CORS_ORIGIN=*`, `NODE_TLS_REJECT_UNAUTHORIZED=0`)
 - ❌ Catches invalid port values (e.g. `PORT=abc`)
 - ❌ Flags malformed URLs (e.g. `DATABASE_URL=localhost`)
-- ❌ Validates `NODE_ENV` values
+- ❌ Validates `NODE_ENV` values (including `staging`)
 - ⚠️ Warns about empty, malformed, or missing variables
 - ✅ Priority-based rule engine
 - ✅ Auto-generates `.env.example` from `.env`
@@ -24,7 +26,8 @@ Built with Rust. Fast by default.
 - ⚙️ Custom rules via `guardstack.config.toml`
 - 🔄 Custom rules override built-in rules
 - 🔐 Scans source files for hardcoded secrets
-- 🔍 Detects real secret patterns (Stripe, GitHub, AWS, Slack)
+- 🚀 Parallel scanning for blazing fast performance
+- 🔍 Detects real secret patterns (Stripe, GitHub, AWS, Slack, and more)
 - 💬 Differentiates code leaks from comment leaks
 
 ---
@@ -129,12 +132,15 @@ Runs pattern-based rules with priority ordering:
 
 | Pattern | Rule |
 | ------- | ---- |
-| Key is `NODE_ENV` | Must be `development`, `production`, or `test` |
+| Key is `NODE_ENV` | Must be `development`, `production`, `staging`, or `test` |
 | Key contains `SECRET` or `KEY` or `API` | Value must be ≥ 32 characters |
 | Key contains `URL` | Must start with a valid protocol (http, postgres, redis, etc.) |
 | Key contains `PORT` | Must be a valid number (0-65535) |
 | Key contains `HOST` | Must not be empty |
 | Key contains `ID` | Must not be empty |
+| Any Key | Must not be a common dummy value (e.g., `password`) |
+| Key is `CORS_ORIGIN` | Must not be `*` |
+| Key is `NODE_TLS_REJECT_UNAUTHORIZED` | Must not be `0` |
 
 **3. Missing Keys Check**
 Compares `.env` against `.env.example` - any key in `.env.example` missing from  `.env` is flagged!!
@@ -169,6 +175,8 @@ Custom rules override built-in rules with matching patterns!!
 - [x] Cross platform binaries (Windows, Mac, Linux)
 - [x] Custom rules via `guardstack.config.toml`
 - [x] Secret leak detection in source files
+- [x] Parallel scanning for performance
+- [x] Heuristic-based false positive reduction
 - [ ] VSCode extension
 - [ ] Docker config validation
 

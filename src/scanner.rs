@@ -86,23 +86,27 @@ pub struct ScanResult {
 use rayon::prelude::*;
 
 pub fn scan_files(custom_path: Option<&str>) -> Vec<ScanResult> {
+    // Pre-compile regexes for patterns ONCE
+    let patterns: Vec<Regex> = SECRET_PATTERNS
+        .iter()
+        .filter_map(|p| Regex::new(p).ok())
+        .collect();
+
     match custom_path {
         Some(path) => {
             let mut results = Vec::new();
-            scan_directory(path, &mut results);
+            scan_directory(path, &mut results, &patterns);
             results
         }
         None => {
             // scan current directory by default if no path provided
             let mut results = Vec::new();
-            scan_directory(".", &mut results);
+            scan_directory(".", &mut results, &patterns);
 
             // also check common target files explicitly if they were missed
             for file in TARGET_FILES {
-                if Path::new(file).exists()
-                    && !results.iter().any(|r| r.file == *file)
-                {
-                    scan_single_file(file, &mut results);
+                if Path::new(file).exists() && !results.iter().any(|r| r.file == *file) {
+                    scan_single_file(file, &mut results, &patterns);
                 }
             }
             results
@@ -110,7 +114,7 @@ pub fn scan_files(custom_path: Option<&str>) -> Vec<ScanResult> {
     }
 }
 
-fn scan_directory(path: &str, results: &mut Vec<ScanResult>) {
+fn scan_directory(path: &str, results: &mut Vec<ScanResult>, patterns: &[Regex]) {
     let dir = match std::fs::read_dir(path) {
         Ok(d) => d,
         Err(_) => return,
@@ -127,7 +131,7 @@ fn scan_directory(path: &str, results: &mut Vec<ScanResult>) {
             let entry_path = entry.path();
             let mut local_results = Vec::new();
             if let Some(path_str) = entry_path.to_str() {
-                scan_single_file(path_str, &mut local_results);
+                scan_single_file(path_str, &mut local_results, patterns);
             }
             if local_results.is_empty() {
                 None
@@ -153,18 +157,12 @@ fn scan_directory(path: &str, results: &mut Vec<ScanResult>) {
         }
 
         if let Some(path_str) = entry_path.to_str() {
-            scan_directory(path_str, results);
+            scan_directory(path_str, results, patterns);
         }
     }
 }
 
-fn scan_single_file(path: &str, results: &mut Vec<ScanResult>) {
-    // Pre-compile regexes for patterns
-    let patterns: Vec<Regex> = SECRET_PATTERNS
-        .iter()
-        .filter_map(|p| Regex::new(p).ok())
-        .collect();
-
+fn scan_single_file(path: &str, results: &mut Vec<ScanResult>, patterns: &[Regex]) {
     // check excluded files
     let filename = Path::new(path)
         .file_name()
