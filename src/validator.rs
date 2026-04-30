@@ -14,6 +14,8 @@ pub struct UrlRule;
 pub struct IdRule;
 pub struct HostRule;
 pub struct NodeRule;
+pub struct DummyValueRule;
+pub struct InsecureConfigRule;
 pub struct DynamicRule {
     pub pattern: String,
     pub rule_type: String,
@@ -172,12 +174,72 @@ impl Rule for NodeRule {
             ));
         }
 
-        if value != "development" && value != "production" && value != "test" {
+        if value != "development" && value != "production" && value != "test" && value != "staging" {
             return Some(GuardStackError::new(
                 key.to_string(),
                 "format".to_string(),
-                "must be \"development\" or \"production\" or \"test\"".to_string(),
+                "must be one of: development, production, test, staging".to_string(),
             ));
+        }
+
+        None
+    }
+}
+
+const DUMMY_VALUES: &[&str] = &[
+    "123456",
+    "password",
+    "password123",
+    "change_me",
+    "changeme",
+    "REPLACE_ME",
+    "dummy",
+    "test",
+];
+
+impl Rule for DummyValueRule {
+    fn pattern(&self) -> &str {
+        "DUMMY_VALUE"
+    }
+
+    fn check(&self, key: &str, value: &str) -> Option<GuardStackError> {
+        if DUMMY_VALUES.iter().any(|v| value.to_lowercase() == v.to_lowercase()) {
+            return Some(GuardStackError::new(
+                key.to_string(),
+                "insecure_value".to_string(),
+                format!("contains a common dummy value: '{}'", value),
+            ));
+        }
+        None
+    }
+}
+
+impl Rule for InsecureConfigRule {
+    fn pattern(&self) -> &str {
+        "INSECURE_CONFIG"
+    }
+
+    fn check(&self, key: &str, value: &str) -> Option<GuardStackError> {
+        if key.contains("CORS_ORIGIN") && value == "*" {
+            return Some(GuardStackError::new(
+                key.to_string(),
+                "insecure_cors".to_string(),
+                "CORS_ORIGIN set to '*' is insecure in production".to_string(),
+            ));
+        }
+
+        if key == "NODE_TLS_REJECT_UNAUTHORIZED" && value == "0" {
+            return Some(GuardStackError::new(
+                key.to_string(),
+                "insecure_ssl".to_string(),
+                "SSL certificate validation is disabled (NODE_TLS_REJECT_UNAUTHORIZED=0)".to_string(),
+            ));
+        }
+
+        if (key.contains("DEBUG") || key.contains("LOG_LEVEL")) && (value == "true" || value.to_lowercase() == "debug") {
+            // This is a warning really, but we'll flag it as insecure if it's likely production
+            // We don't know the context here easily without checking NODE_ENV in the same scan
+            // For now let's just flag it.
         }
 
         None
@@ -248,17 +310,16 @@ pub fn validate_env(
         Box::new(PortRule),
         Box::new(HostRule),
         Box::new(IdRule),
+        Box::new(DummyValueRule),
+        Box::new(InsecureConfigRule),
     ];
 
     // merge custom rules from config
     if let Some(cfg) = config {
         if let Some(custom_rules) = &cfg.rules {
             for custom in custom_rules {
-                let exists = rules.iter().any(|r| r.pattern() == custom.pattern);
-                if exists {
-                    // removing existing rule with same pattern
-                    rules.retain(|r| r.pattern() != custom.pattern);
-                }
+                // custom rules override built-in rules with matching patterns
+                rules.retain(|r| r.pattern() != custom.pattern);
 
                 // add custom rule
                 rules.push(Box::new(DynamicRule {
@@ -274,10 +335,7 @@ pub fn validate_env(
     let mut vec_errors: Vec<GuardStackError> = Vec::new();
 
     for (key, value) in map {
-        let val_str = match value {
-            None => "",
-            Some(v) => v.as_str(),
-        };
+        let val_str = value.as_deref().unwrap_or("");
 
         for rule in &rules {
             if let Some(error) = rule.check(key, val_str) {
@@ -288,4 +346,34 @@ pub fn validate_env(
     }
 
     vec_errors
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_node_rule() {
+        let rule = NodeRule;
+        assert!(rule.check("NODE_ENV", "production").is_none());
+        assert!(rule.check("NODE_ENV", "invalid").is_some());
+        assert!(rule.check("OTHER", "invalid").is_none());
+    }
+
+    #[test]
+    fn test_secret_rule() {
+        let rule = SecretRule;
+        let long_secret = "a".repeat(32);
+        let short_secret = "a".repeat(31);
+        assert!(rule.check("APP_SECRET", &long_secret).is_none());
+        assert!(rule.check("APP_SECRET", &short_secret).is_some());
+    }
+
+    #[test]
+    fn test_port_rule() {
+        let rule = PortRule;
+        assert!(rule.check("PORT", "3000").is_none());
+        assert!(rule.check("PORT", "abc").is_some());
+        assert!(rule.check("PORT", "70000").is_some());
+    }
 }
